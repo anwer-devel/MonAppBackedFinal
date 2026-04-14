@@ -1,0 +1,74 @@
+spring:
+
+  datasource:
+    url: ${DB_URL}
+    username: ${DB_USERNAME}
+    password: ${DB_PASSWORD}
+    driver-class-name: org.postgresql.Driver
+    hikari:
+      maximum-pool-size: 50
+      minimum-idle: 20
+      connection-timeout: 30000
+      idle-timeout: 600000
+      max-lifetime: 1800000
+      leak-detection-threshold: 60000
+      statement-cache-size: 50
+      prepared-statement-cache-size: 50
+      prepared-statement-cache-sql-limit: 2048
+
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    properties:
+      hibernate:
+        # Auto-detect PostgreSQL dialect
+        format_sql: false
+        jdbc:
+          batch_size: 50
+          fetch_size: 100
+          # Enable batch writes for better performance
+          batch_versioned_data: true
+        order_inserts: true
+        order_updates: true
+        statement_cache_size: 50
+    show-sql: false
+
+  redis:
+    host: ${REDIS_HOST}
+    port: ${REDIS_PORT:6379}
+    password: ${REDIS_PASSWORD}
+    timeout: 120000ms
+    lettuce:
+      pool:
+        max-active: 50
+        max-idle: 25
+        min-idle: 10
+      shutdown-timeout: 10000ms
+
+  servlet:
+    multipart:
+      max-file-size: 100MB
+      max-request-size: 100MB
+
+app:
+  jwt:
+    secret: ${JWT_SECRET}
+    access-token-expiration: 900000
+    refresh-token-expiration: 604800000
+  upload:
+    path: ${UPLOAD_PATH:/var/app/uploads}
+
+logging:
+  level:
+    root: WARN
+    com.app: INFO
+    org.springframework.security: WARN
+    org.hibernate.SQL: ERROR
+  pattern:
+    console: "%d{yyyy-MM-dd HH:mm:ss} - %msg%n"
+    file: "%d{yyyy-MM-dd HH:mm:ss} [%thread] %-5level %logger{36} - %msg%n"
+  file:
+    name: /var/log/app/application.log
+    max-size: 10MB
+    max-history: 30
+

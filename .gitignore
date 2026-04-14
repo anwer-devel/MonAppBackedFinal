@@ -1,0 +1,39 @@
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+.DS_Store
+
+# Maven
+target/
+.classpath
+.project
+.settings/
+*.jar
+*.war
+*.ear
+
+# Gradle
+.gradle/
+build/
+
+# Spring Boot
+application-local.yml
+.env
+
+# Logs
+logs/
+*.log
+
+# Database
+*.db
+*.sqlite
+
+# Uploads
+uploads/
+
+# OS
+Thumbs.db
+
