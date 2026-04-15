@@ -4,6 +4,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.messaging.simp.config.ChannelRegistration;
 import org.springframework.messaging.simp.config.MessageBrokerRegistry;
+import org.springframework.scheduling.TaskScheduler;
 import org.springframework.web.socket.config.annotation.EnableWebSocketMessageBroker;
 import org.springframework.web.socket.config.annotation.StompEndpointRegistry;
 import org.springframework.web.socket.config.annotation.WebSocketMessageBrokerConfigurer;
@@ -14,12 +15,14 @@ import org.springframework.web.socket.config.annotation.WebSocketMessageBrokerCo
 public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
 
     private final WebSocketAuthInterceptor webSocketAuthInterceptor;
+    private final TaskScheduler taskScheduler;
 
     @Override
     public void configureMessageBroker(MessageBrokerRegistry config) {
         // Simple broker for /topic (broadcast) and /queue (private)
         config.enableSimpleBroker("/topic", "/queue")
-            .setHeartbeatValue(new long[]{60000, 60000});  // ✅ Fix #11: 60 seconds heartbeat
+            .setHeartbeatValue(new long[]{60000, 60000})  // ✅ Fix #11: 60 seconds heartbeat
+            .setTaskScheduler(taskScheduler);
 
         // Client sends to /app/...
         config.setApplicationDestinationPrefixes("/app");
