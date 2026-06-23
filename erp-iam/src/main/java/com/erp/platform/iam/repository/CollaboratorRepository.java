@@ -1,0 +1,44 @@
+package com.erp.platform.iam.repository;
+
+import com.erp.platform.iam.entity.Collaborator;
+import com.erp.platform.iam.enums.CollaboratorRole;
+import com.erp.platform.iam.enums.CollaboratorStatus;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
+import org.springframework.stereotype.Repository;
+
+import java.util.Optional;
+import java.util.UUID;
+
+@Repository
+public interface CollaboratorRepository extends JpaRepository<Collaborator, UUID> {
+
+    Optional<Collaborator> findByEmailAndIsDeletedFalse(String email);
+
+    Optional<Collaborator> findByIdAndIsDeletedFalse(UUID id);
+
+    Optional<Collaborator> findByRefreshTokenHashAndIsDeletedFalse(String refreshTokenHash);
+
+    @Query("SELECT c FROM Collaborator c WHERE c.isDeleted = false " +
+            "AND (:partnerId IS NULL OR c.partner.id = :partnerId) " +
+            "AND (:role IS NULL OR c.role = :role) " +
+            "AND (:localId IS NULL OR c.defaultLocal.id = :localId) " +
+            "AND (:q IS NULL OR LOWER(c.firstName) LIKE LOWER(CONCAT('%', :q, '%')) " +
+            "  OR LOWER(c.lastName) LIKE LOWER(CONCAT('%', :q, '%')) " +
+            "  OR LOWER(c.email) LIKE LOWER(CONCAT('%', :q, '%')))")
+    Page<Collaborator> findWithFilters(@Param("partnerId") UUID partnerId,
+                                       @Param("role") CollaboratorRole role,
+                                       @Param("localId") UUID localId,
+                                       @Param("q") String q,
+                                       Pageable pageable);
+
+    int countByPartner_IdAndStatusAndIsDeletedFalse(UUID partnerId, CollaboratorStatus status);
+
+    int countByPartner_IdAndIsDeletedFalse(UUID partnerId);
+
+    Optional<Collaborator> findByPartner_IdAndRoleAndIsDeletedFalse(
+            UUID partnerId, CollaboratorRole role);
+}
