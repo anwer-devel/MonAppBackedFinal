@@ -1,5 +1,6 @@
-package com.erp.platform.core.security;
+package com.erp.platform.iam.service;
 
+import com.erp.platform.core.security.UserPrincipal;
 import com.erp.platform.iam.entity.Collaborator;
 import com.erp.platform.iam.enums.CollaboratorStatus;
 import com.erp.platform.iam.repository.CollaboratorRepository;

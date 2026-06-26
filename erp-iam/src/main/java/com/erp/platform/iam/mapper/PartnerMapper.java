@@ -5,7 +5,7 @@ import com.erp.platform.iam.dto.partner.PartnerResponse;
 import com.erp.platform.iam.entity.Partner;
 import org.mapstruct.*;
 
-@Mapper(componentModel = "spring")
+@Mapper(componentModel = "spring", builder = @Builder(disableBuilder = true))
 public interface PartnerMapper {
 
     @Mapping(target = "id", ignore = true)

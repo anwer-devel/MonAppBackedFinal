@@ -5,7 +5,7 @@ import com.erp.platform.iam.dto.local.LocalResponse;
 import com.erp.platform.iam.entity.LocalUnit;
 import org.mapstruct.*;
 
-@Mapper(componentModel = "spring")
+@Mapper(componentModel = "spring", builder = @Builder(disableBuilder = true))
 public interface LocalUnitMapper {
 
     @Mapping(target = "id", ignore = true)
@@ -18,6 +18,6 @@ public interface LocalUnitMapper {
 
     @Mapping(source = "partner.id", target = "partnerId")
     @Mapping(target = "collaboratorsCount", ignore = true)
-    @Mapping(source = "main", target = "isMain")
+    @Mapping(source = "main", target = "main")
     LocalResponse toResponse(LocalUnit localUnit);
 }
