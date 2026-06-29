@@ -30,6 +30,7 @@ import java.util.UUID;
 @Slf4j
 @Service
 @RequiredArgsConstructor
+@Transactional(readOnly = true)
 public class CollaboratorService {
 
     private final CollaboratorRepository collaboratorRepository;
@@ -54,8 +55,11 @@ public class CollaboratorService {
             permissionChecker.checkPartnerAccess(requestingUserId, partnerId);
         }
 
+        String qParam = (q != null && !q.isBlank()) ? q.trim() : null;
+        String qPattern = (qParam != null) ? "%" + qParam.toLowerCase() + "%" : null;
+
         Page<Collaborator> page = collaboratorRepository.findWithFilters(
-                partnerId, role, localId, q, pageable);
+                partnerId, role, localId, qParam, qPattern, pageable);
         Page<CollaboratorResponse> responsePage = page.map(collaboratorMapper::toResponse);
         return PageResponse.from(responsePage);
     }

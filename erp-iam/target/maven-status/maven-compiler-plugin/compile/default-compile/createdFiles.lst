@@ -46,7 +46,6 @@ com\erp\platform\iam\dto\partner\PartnerConfigRequest.class
 com\erp\platform\iam\dto\auth\LoginResponse.class
 com\erp\platform\iam\dto\auth\LogoutRequest.class
 com\erp\platform\iam\service\CollaboratorService.class
-com\erp\platform\iam\service\TenantInitService$1.class
 com\erp\platform\iam\enums\CollaboratorRole.class
 com\erp\platform\iam\dto\partner\PartnerStatsResponse$PartnerStatsResponseBuilder.class
 com\erp\platform\iam\dto\partner\UpdatePartnerStatusRequest.class

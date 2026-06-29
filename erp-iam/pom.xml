@@ -20,6 +20,11 @@
             <groupId>com.erp.platform</groupId>
             <artifactId>erp-core</artifactId>
         </dependency>
+        <dependency>
+            <groupId>com.erp.platform</groupId>
+            <artifactId>erp-catalog</artifactId>
+            <version>${project.version}</version>
+        </dependency>
 
         <!-- Lombok -->
         <dependency>

@@ -1,6 +1,7 @@
 D:\AppSass\MonAppBackedFinal\erp-core\src\main\java\com\erp\platform\core\exception\ForbiddenException.java
 D:\AppSass\MonAppBackedFinal\erp-core\src\main\java\com\erp\platform\core\security\UserPrincipal.java
 D:\AppSass\MonAppBackedFinal\erp-core\src\main\java\com\erp\platform\core\config\RedisConfig.java
+D:\AppSass\MonAppBackedFinal\erp-core\src\main\java\com\erp\platform\core\tenant\MultiTenantConnectionProviderImpl.java
 D:\AppSass\MonAppBackedFinal\erp-core\src\main\java\com\erp\platform\core\common\ApiResponse.java
 D:\AppSass\MonAppBackedFinal\erp-core\src\main\java\com\erp\platform\core\exception\GlobalExceptionHandler.java
 D:\AppSass\MonAppBackedFinal\erp-core\src\main\java\com\erp\platform\core\config\WebMvcConfig.java
@@ -14,6 +15,7 @@ D:\AppSass\MonAppBackedFinal\erp-core\src\main\java\com\erp\platform\core\audit\
 D:\AppSass\MonAppBackedFinal\erp-core\src\main\java\com\erp\platform\core\security\JwtService.java
 D:\AppSass\MonAppBackedFinal\erp-core\src\main\java\com\erp\platform\core\tenant\TenantSchemaResolver.java
 D:\AppSass\MonAppBackedFinal\erp-core\src\main\java\com\erp\platform\core\audit\AuditLog.java
+D:\AppSass\MonAppBackedFinal\erp-core\src\main\java\com\erp\platform\core\tenant\CurrentTenantIdentifierResolverImpl.java
 D:\AppSass\MonAppBackedFinal\erp-core\src\main\java\com\erp\platform\core\tenant\TenantInterceptor.java
 D:\AppSass\MonAppBackedFinal\erp-core\src\main\java\com\erp\platform\core\exception\ConflictException.java
 D:\AppSass\MonAppBackedFinal\erp-core\src\main\java\com\erp\platform\core\config\JwtConfig.java

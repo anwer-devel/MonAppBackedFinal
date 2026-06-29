@@ -22,6 +22,7 @@
     <modules>
         <module>erp-core</module>
         <module>erp-iam</module>
+        <module>erp-catalog</module>
     </modules>
 
     <properties>
@@ -39,6 +40,11 @@
             <dependency>
                 <groupId>com.erp.platform</groupId>
                 <artifactId>erp-core</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.erp.platform</groupId>
+                <artifactId>erp-catalog</artifactId>
                 <version>${project.version}</version>
             </dependency>
 

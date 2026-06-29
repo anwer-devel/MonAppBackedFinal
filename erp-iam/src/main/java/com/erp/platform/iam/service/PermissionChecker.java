@@ -7,17 +7,19 @@ import com.erp.platform.iam.enums.CollaboratorRole;
 import com.erp.platform.iam.repository.CollaboratorRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.UUID;
 
 @Component
 @RequiredArgsConstructor
+@Transactional(readOnly = true)
 public class PermissionChecker {
 
     private final CollaboratorRepository collaboratorRepository;
 
     public void checkPartnerAccess(UUID userId, UUID requestedPartnerId) {
-        Collaborator collab = collaboratorRepository.findByIdAndIsDeletedFalse(userId)
+        Collaborator collab = collaboratorRepository.findByIdWithRelations(userId)
                 .orElseThrow(() -> new ResourceNotFoundException("Collaborator", "id", userId));
 
         if (collab.getRole() == CollaboratorRole.PLATFORM_ADMIN) {
@@ -34,7 +36,7 @@ public class PermissionChecker {
     }
 
     public void checkLocalAccess(UUID userId, UUID requestedLocalId) {
-        Collaborator collab = collaboratorRepository.findByIdAndIsDeletedFalse(userId)
+        Collaborator collab = collaboratorRepository.findByIdWithRelations(userId)
                 .orElseThrow(() -> new ResourceNotFoundException("Collaborator", "id", userId));
 
         if (collab.getRole() == CollaboratorRole.PLATFORM_ADMIN
@@ -57,7 +59,7 @@ public class PermissionChecker {
     }
 
     public Collaborator getCollaborator(UUID userId) {
-        return collaboratorRepository.findByIdAndIsDeletedFalse(userId)
+        return collaboratorRepository.findByIdWithRelations(userId)
                 .orElseThrow(() -> new ResourceNotFoundException("Collaborator", "id", userId));
     }
 }

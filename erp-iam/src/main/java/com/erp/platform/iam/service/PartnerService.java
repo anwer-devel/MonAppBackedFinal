@@ -29,6 +29,7 @@ import java.util.UUID;
 @Slf4j
 @Service
 @RequiredArgsConstructor
+@Transactional(readOnly = true)
 public class PartnerService {
 
     private final PartnerRepository partnerRepository;

@@ -20,6 +20,15 @@ public interface CollaboratorRepository extends JpaRepository<Collaborator, UUID
 
     Optional<Collaborator> findByIdAndIsDeletedFalse(UUID id);
 
+    @Query("""
+        SELECT c FROM Collaborator c
+        LEFT JOIN FETCH c.partner p
+        LEFT JOIN FETCH c.defaultLocal l
+        WHERE c.id = :id
+          AND c.isDeleted = false
+        """)
+    Optional<Collaborator> findByIdWithRelations(@Param("id") UUID id);
+
     Optional<Collaborator> findByRefreshTokenHashAndIsDeletedFalse(String refreshTokenHash);
 
     @Query("""
@@ -52,17 +61,23 @@ public interface CollaboratorRepository extends JpaRepository<Collaborator, UUID
 
     int countByPartner_IdAndIsDeletedFalse(UUID partnerId);
 
-    @Query("SELECT c FROM Collaborator c WHERE c.isDeleted = false " +
-            "AND (:partnerId IS NULL OR c.partner.id = :partnerId) " +
-            "AND (:role IS NULL OR c.role = :role) " +
-            "AND (:localId IS NULL OR c.defaultLocal.id = :localId) " +
-            "AND (:q IS NULL OR LOWER(c.firstName) LIKE LOWER(CONCAT('%', :q, '%')) " +
-            "  OR LOWER(c.lastName) LIKE LOWER(CONCAT('%', :q, '%')) " +
-            "  OR LOWER(c.email) LIKE LOWER(CONCAT('%', :q, '%')))")
+    @Query("""
+        SELECT c FROM Collaborator c WHERE c.isDeleted = false
+          AND (:partnerId IS NULL OR c.partner.id = :partnerId)
+          AND (:role IS NULL OR c.role = :role)
+          AND (:localId IS NULL OR c.defaultLocal.id = :localId)
+          AND (
+            :q IS NULL
+            OR LOWER(c.firstName) LIKE :qPattern
+            OR LOWER(c.lastName) LIKE :qPattern
+            OR LOWER(c.email) LIKE :qPattern
+          )
+        """)
     Page<Collaborator> findWithFilters(@Param("partnerId") UUID partnerId,
                                        @Param("role") CollaboratorRole role,
                                        @Param("localId") UUID localId,
                                        @Param("q") String q,
+                                       @Param("qPattern") String qPattern,
                                        Pageable pageable);
 
     Optional<Collaborator> findByPartner_IdAndRoleAndIsDeletedFalse(

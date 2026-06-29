@@ -21,6 +21,8 @@ com\erp\platform\core\security\UserPrincipal.class
 com\erp\platform\core\tenant\TenantSchemaResolver.class
 com\erp\platform\core\exception\GlobalExceptionHandler.class
 com\erp\platform\core\exception\ForbiddenException.class
+com\erp\platform\core\tenant\MultiTenantConnectionProviderImpl.class
+com\erp\platform\core\tenant\CurrentTenantIdentifierResolverImpl.class
 com\erp\platform\core\audit\AuditService.class
 com\erp\platform\core\exception\TokenExpiredException.class
 com\erp\platform\core\audit\AuditLog$AuditLogBuilder.class
