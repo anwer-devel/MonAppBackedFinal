@@ -49,8 +49,8 @@ public class AuthService {
             throw new LockedException("Compte suspendu ou inactif");
         }
 
-        // Generate tokens
         String accessToken = jwtService.generateAccessToken(
+                collab.getId(),
                 collab.getEmail(),
                 collab.getRole().name(),
                 collab.getPartner() != null ? collab.getPartner().getId() : null,
@@ -62,7 +62,6 @@ public class AuthService {
         String refreshToken = jwtService.generateRefreshToken();
         String refreshHash = jwtService.hashToken(refreshToken);
 
-        // Store refresh token
         collab.setRefreshTokenHash(refreshHash);
         collab.setRefreshTokenExpiry(
                 LocalDateTime.now().plusSeconds(jwtConfig.getRefreshExpirySeconds()));
@@ -70,7 +69,6 @@ public class AuthService {
         collab.setLastLoginIp(ipAddress);
         collaboratorRepository.save(collab);
 
-        // Audit
         auditService.log(collab.getId(), collab.getEmail(), "USER_LOGIN",
                 "Collaborator", collab.getId(), null, null,
                 collab.getPartner() != null ? collab.getPartner().getCode() : null,
@@ -83,7 +81,7 @@ public class AuthService {
     public LoginResponse refresh(RefreshRequest req) {
         String hash = jwtService.hashToken(req.getRefreshToken());
 
-        Collaborator collab = collaboratorRepository.findByRefreshTokenHashAndIsDeletedFalse(hash)
+        Collaborator collab = collaboratorRepository.findByRefreshTokenHashWithRelations(hash)
                 .orElseThrow(() -> new TokenExpiredException("Refresh token invalide"));
 
         if (collab.getRefreshTokenExpiry() == null
@@ -94,8 +92,8 @@ public class AuthService {
             throw new TokenExpiredException("Refresh token expiré");
         }
 
-        // Rotate tokens
         String newAccessToken = jwtService.generateAccessToken(
+                collab.getId(),
                 collab.getEmail(),
                 collab.getRole().name(),
                 collab.getPartner() != null ? collab.getPartner().getId() : null,
@@ -119,7 +117,7 @@ public class AuthService {
     public void logout(String refreshToken, String accessToken, UUID userId) {
         if (refreshToken != null) {
             String hash = jwtService.hashToken(refreshToken);
-            collaboratorRepository.findByRefreshTokenHashAndIsDeletedFalse(hash)
+            collaboratorRepository.findByRefreshTokenHashWithRelations(hash)
                     .ifPresent(collab -> {
                         collab.setRefreshTokenHash(null);
                         collab.setRefreshTokenExpiry(null);
@@ -127,7 +125,6 @@ public class AuthService {
                     });
         }
 
-        // Blacklist access token in Redis
         if (accessToken != null) {
             try {
                 long remainingMillis = jwtService.getRemainingExpiryMillis(accessToken);
@@ -143,7 +140,6 @@ public class AuthService {
             }
         }
 
-        // Audit
         if (userId != null) {
             collaboratorRepository.findByIdAndIsDeletedFalse(userId)
                     .ifPresent(collab ->

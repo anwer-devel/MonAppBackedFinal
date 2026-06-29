@@ -22,6 +22,36 @@ public interface CollaboratorRepository extends JpaRepository<Collaborator, UUID
 
     Optional<Collaborator> findByRefreshTokenHashAndIsDeletedFalse(String refreshTokenHash);
 
+    @Query("""
+        SELECT c FROM Collaborator c
+        LEFT JOIN FETCH c.partner p
+        LEFT JOIN FETCH c.defaultLocal l
+        WHERE c.email = :email
+          AND c.isDeleted = false
+        """)
+    Optional<Collaborator> findByEmailWithRelations(@Param("email") String email);
+
+    @Query("""
+        SELECT c FROM Collaborator c
+        LEFT JOIN FETCH c.partner p
+        LEFT JOIN FETCH c.defaultLocal l
+        WHERE c.refreshTokenHash = :hash
+          AND c.isDeleted = false
+        """)
+    Optional<Collaborator> findByRefreshTokenHashWithRelations(@Param("hash") String hash);
+
+    @Query("""
+        SELECT COUNT(c) FROM Collaborator c
+        WHERE c.partner.id = :partnerId
+          AND c.role != com.erp.platform.iam.enums.CollaboratorRole.PARTNER_ADMIN
+          AND c.isDeleted = false
+        """)
+    int countNonAdminByPartnerId(@Param("partnerId") UUID partnerId);
+
+    int countByPartner_IdAndStatusAndIsDeletedFalse(UUID partnerId, CollaboratorStatus status);
+
+    int countByPartner_IdAndIsDeletedFalse(UUID partnerId);
+
     @Query("SELECT c FROM Collaborator c WHERE c.isDeleted = false " +
             "AND (:partnerId IS NULL OR c.partner.id = :partnerId) " +
             "AND (:role IS NULL OR c.role = :role) " +
@@ -35,26 +65,6 @@ public interface CollaboratorRepository extends JpaRepository<Collaborator, UUID
                                        @Param("q") String q,
                                        Pageable pageable);
 
-    int countByPartner_IdAndStatusAndIsDeletedFalse(UUID partnerId, CollaboratorStatus status);
-
-    int countByPartner_IdAndIsDeletedFalse(UUID partnerId);
-
     Optional<Collaborator> findByPartner_IdAndRoleAndIsDeletedFalse(
             UUID partnerId, CollaboratorRole role);
-
-    @Query("""
-      SELECT c FROM Collaborator c
-      LEFT JOIN FETCH c.partner p
-      LEFT JOIN FETCH c.defaultLocal l
-      WHERE c.email = :email AND c.isDeleted = false
-      """)
-    Optional<Collaborator> findByEmailWithRelations(@Param("email") String email);
-
-    @Query("""
-      SELECT COUNT(c) FROM Collaborator c
-      WHERE c.partner.id = :partnerId
-        AND c.role != 'PARTNER_ADMIN'
-        AND c.isDeleted = false
-      """)
-    int countNonAdminByPartnerId(@Param("partnerId") UUID partnerId);
 }

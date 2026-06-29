@@ -1,42 +1,39 @@
 package com.erp.platform.core.security;
 
+import com.erp.platform.core.security.JwtService;
+import io.jsonwebtoken.Claims;
+import io.jsonwebtoken.ExpiredJwtException;
+import io.jsonwebtoken.MalformedJwtException;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.lang.NonNull;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
-import org.springframework.security.core.userdetails.UserDetails;
-import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.web.authentication.WebAuthenticationDetailsSource;
 import org.springframework.stereotype.Component;
-import org.springframework.security.core.GrantedAuthority;
-import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.web.filter.OncePerRequestFilter;
 
 import java.io.IOException;
 import java.util.List;
 
-@Slf4j
 @Component
 @RequiredArgsConstructor
+@Slf4j
 public class JwtAuthFilter extends OncePerRequestFilter {
 
     private final JwtService jwtService;
-    private final UserDetailsService userDetailsService;
-    private final RedisTemplate<String, Object> redisTemplate;
-
-    private static final String BLACKLIST_PREFIX = "jwt:blacklist:";
 
     @Override
-    protected void doFilterInternal(@NonNull HttpServletRequest request,
-                                    @NonNull HttpServletResponse response,
-                                    @NonNull FilterChain filterChain)
-            throws ServletException, IOException {
+    protected void doFilterInternal(
+            @NonNull HttpServletRequest request,
+            @NonNull HttpServletResponse response,
+            @NonNull FilterChain filterChain
+    ) throws ServletException, IOException {
 
         final String authHeader = request.getHeader("Authorization");
 
@@ -48,34 +45,51 @@ public class JwtAuthFilter extends OncePerRequestFilter {
         final String jwt = authHeader.substring(7);
 
         try {
-            // Check if token is blacklisted in Redis
-            Boolean isBlacklisted = redisTemplate.hasKey(BLACKLIST_PREFIX + jwt);
-            if (Boolean.TRUE.equals(isBlacklisted)) {
+            Claims claims = jwtService.extractAllClaims(jwt);
+
+            String email     = claims.getSubject();
+            String role      = claims.get("role", String.class);
+            String userId    = claims.get("userId", String.class);
+            String partnerId = claims.get("partnerId", String.class);
+            String partnerCode = claims.get("partnerCode", String.class);
+            String defaultLocalId = claims.get("defaultLocalId", String.class);
+
+            if (email == null || role == null) {
+                log.debug("JWT missing required claims: email={}, role={}", email, role);
                 filterChain.doFilter(request, response);
                 return;
             }
 
-            final String email = jwtService.extractEmail(jwt);
+            String authorityName = role.startsWith("ROLE_") ? role : "ROLE_" + role;
+            SimpleGrantedAuthority authority = new SimpleGrantedAuthority(authorityName);
 
-            if (email != null && SecurityContextHolder.getContext().getAuthentication() == null) {
-                UserDetails userDetails = userDetailsService.loadUserByUsername(email);
+            JwtUserPrincipal principal = JwtUserPrincipal.builder()
+                    .email(email)
+                    .role(role)
+                    .userId(userId)
+                    .partnerId(partnerId)
+                    .partnerCode(partnerCode)
+                    .defaultLocalId(defaultLocalId)
+                    .build();
 
-                if (jwtService.isTokenValid(jwt, userDetails)) {
-                    String role = jwtService.extractRole(jwt);
-                    String authorityName = (role != null && role.startsWith("ROLE_")) ? role : "ROLE_" + role;
-                    List<GrantedAuthority> authorities = List.of(new SimpleGrantedAuthority(authorityName));
+            UsernamePasswordAuthenticationToken authToken =
+                    new UsernamePasswordAuthenticationToken(
+                            principal,
+                            null,
+                            List.of(authority)
+                    );
 
-                    UsernamePasswordAuthenticationToken authToken =
-                            new UsernamePasswordAuthenticationToken(
-                                    userDetails, null, authorities);
-                    authToken.setDetails(
-                            new WebAuthenticationDetailsSource().buildDetails(request));
-                    SecurityContextHolder.getContext().setAuthentication(authToken);
+            authToken.setDetails(
+                    new WebAuthenticationDetailsSource().buildDetails(request)
+            );
 
-                    // Store JWT in request for later use (e.g., tenant resolution)
-                    request.setAttribute("jwt", jwt);
-                }
-            }
+            SecurityContextHolder.getContext().setAuthentication(authToken);
+            log.debug("JWT authenticated: email={}, role={}", email, role);
+
+        } catch (ExpiredJwtException e) {
+            log.debug("JWT expired for request: {}", request.getRequestURI());
+        } catch (MalformedJwtException e) {
+            log.debug("JWT malformed for request: {}", request.getRequestURI());
         } catch (Exception e) {
             log.debug("JWT validation failed: {}", e.getMessage());
         }
@@ -84,12 +98,11 @@ public class JwtAuthFilter extends OncePerRequestFilter {
     }
 
     @Override
-    protected boolean shouldNotFilter(@NonNull HttpServletRequest request) {
+    protected boolean shouldNotFilter(HttpServletRequest request) {
         String path = request.getServletPath();
-        return path.equals("/api/v1/auth/login")
-                || path.equals("/api/v1/auth/refresh")
+        return path.startsWith("/api/v1/auth/login")
+                || path.startsWith("/api/v1/auth/refresh")
                 || path.startsWith("/swagger-ui")
-                || path.startsWith("/api-docs")
                 || path.startsWith("/v3/api-docs");
     }
 }

@@ -1,6 +1,6 @@
 package com.erp.platform.iam.controller;
 
-import com.erp.platform.core.security.UserPrincipal;
+import com.erp.platform.core.security.JwtUserPrincipal;
 import com.erp.platform.iam.dto.auth.*;
 import com.erp.platform.iam.service.AuthService;
 import io.swagger.v3.oas.annotations.Operation;
@@ -12,6 +12,8 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
+
+import java.util.UUID;
 
 @RestController
 @RequestMapping("/api/v1/auth")
@@ -41,18 +43,20 @@ public class AuthController {
     @PreAuthorize("isAuthenticated()")
     @Operation(summary = "Logout and invalidate tokens")
     public ResponseEntity<Void> logout(@Valid @RequestBody LogoutRequest request,
-                                        @AuthenticationPrincipal UserPrincipal principal,
+                                        @AuthenticationPrincipal JwtUserPrincipal principal,
                                         HttpServletRequest httpRequest) {
         String accessToken = extractAccessToken(httpRequest);
-        authService.logout(request.getRefreshToken(), accessToken, principal.getId());
+        UUID userId = UUID.fromString(principal.getUserId());
+        authService.logout(request.getRefreshToken(), accessToken, userId);
         return ResponseEntity.noContent().build();
     }
 
     @GetMapping("/me")
     @PreAuthorize("isAuthenticated()")
     @Operation(summary = "Get current authenticated user info")
-    public ResponseEntity<UserInfo> getMe(@AuthenticationPrincipal UserPrincipal principal) {
-        UserInfo userInfo = authService.getMe(principal.getId());
+    public ResponseEntity<UserInfo> getMe(@AuthenticationPrincipal JwtUserPrincipal principal) {
+        UUID userId = UUID.fromString(principal.getUserId());
+        UserInfo userInfo = authService.getMe(userId);
         return ResponseEntity.ok(userInfo);
     }
 

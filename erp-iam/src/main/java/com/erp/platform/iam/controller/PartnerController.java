@@ -2,7 +2,7 @@ package com.erp.platform.iam.controller;
 
 import com.erp.platform.core.common.PageResponse;
 import com.erp.platform.core.exception.ForbiddenException;
-import com.erp.platform.core.security.UserPrincipal;
+import com.erp.platform.core.security.JwtUserPrincipal;
 import com.erp.platform.iam.dto.collaborator.CollaboratorResponse;
 import com.erp.platform.iam.dto.partner.*;
 import com.erp.platform.iam.entity.PartnerConfig;
@@ -20,7 +20,7 @@ import org.springframework.data.domain.Sort;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
-import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.UUID;
@@ -32,6 +32,10 @@ import java.util.UUID;
 public class PartnerController {
 
     private final PartnerService partnerService;
+
+    private JwtUserPrincipal getPrincipal(Authentication auth) {
+        return (JwtUserPrincipal) auth.getPrincipal();
+    }
 
     @GetMapping("/stats")
     @PreAuthorize("hasRole('PLATFORM_ADMIN')")
@@ -73,8 +77,9 @@ public class PartnerController {
     @Operation(summary = "Create a new partner")
     public ResponseEntity<PartnerResponse> create(
             @Valid @RequestBody CreatePartnerRequest request,
-            @AuthenticationPrincipal UserPrincipal principal) {
-        PartnerResponse response = partnerService.create(request, principal.getId());
+            Authentication auth) {
+        UUID createdBy = UUID.fromString(getPrincipal(auth).getUserId());
+        PartnerResponse response = partnerService.create(request, createdBy);
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
     }
 
@@ -96,18 +101,33 @@ public class PartnerController {
     }
 
     @GetMapping("/{id}/config")
-    @PreAuthorize("hasRole('PLATFORM_ADMIN')")
+    @PreAuthorize("hasAnyRole('PLATFORM_ADMIN', 'PARTNER_ADMIN')")
     @Operation(summary = "Get partner configuration")
-    public ResponseEntity<PartnerConfig> getConfig(@PathVariable UUID id) {
+    public ResponseEntity<PartnerConfig> getConfig(
+            @PathVariable UUID id,
+            Authentication auth) {
+        JwtUserPrincipal principal = getPrincipal(auth);
+        if ("PARTNER_ADMIN".equals(principal.getRole())) {
+            if (principal.getPartnerId() == null || !id.toString().equals(principal.getPartnerId())) {
+                throw new ForbiddenException("Accès refusé");
+            }
+        }
         return ResponseEntity.ok(partnerService.getConfig(id));
     }
 
     @PutMapping("/{id}/config")
-    @PreAuthorize("hasRole('PLATFORM_ADMIN')")
+    @PreAuthorize("hasAnyRole('PLATFORM_ADMIN', 'PARTNER_ADMIN')")
     @Operation(summary = "Update partner configuration")
     public ResponseEntity<PartnerResponse> updateConfig(
             @PathVariable UUID id,
-            @Valid @RequestBody PartnerConfigRequest request) {
+            @Valid @RequestBody PartnerConfigRequest request,
+            Authentication auth) {
+        JwtUserPrincipal principal = getPrincipal(auth);
+        if ("PARTNER_ADMIN".equals(principal.getRole())) {
+            if (principal.getPartnerId() == null || !id.toString().equals(principal.getPartnerId())) {
+                throw new ForbiddenException("Accès refusé");
+            }
+        }
         return ResponseEntity.ok(partnerService.updateConfig(id, request));
     }
 
@@ -117,20 +137,24 @@ public class PartnerController {
     public ResponseEntity<CollaboratorResponse> createAdmin(
             @PathVariable UUID id,
             @Valid @RequestBody CreatePartnerAdminRequest request,
-            @AuthenticationPrincipal UserPrincipal principal) {
-        CollaboratorResponse response = partnerService.createAdmin(id, request, principal.getId());
+            Authentication auth) {
+        UUID createdBy = UUID.fromString(getPrincipal(auth).getUserId());
+        CollaboratorResponse response = partnerService.createAdmin(id, request, createdBy);
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
     }
 
     @GetMapping("/{id}/setup-status")
-    @PreAuthorize("hasAnyRole('PLATFORM_ADMIN','PARTNER_ADMIN')")
+    @PreAuthorize("hasAnyRole('PLATFORM_ADMIN', 'PARTNER_ADMIN')")
     @Operation(summary = "Get partner setup status")
     public ResponseEntity<SetupStatusResponse> getSetupStatus(
             @PathVariable UUID id,
-            @AuthenticationPrincipal UserPrincipal principal) {
-        if ("PARTNER_ADMIN".equals(principal.getRole())
-                && (principal.getPartnerId() == null || !id.equals(principal.getPartnerId()))) {
-            throw new ForbiddenException("Accès refusé : vous ne pouvez accéder qu'à votre propre tenant");
+            Authentication auth) {
+        JwtUserPrincipal principal = getPrincipal(auth);
+        if ("PARTNER_ADMIN".equals(principal.getRole())) {
+            String tokenPartnerId = principal.getPartnerId();
+            if (tokenPartnerId == null || !id.toString().equals(tokenPartnerId)) {
+                throw new ForbiddenException("Accès refusé à ce partenaire");
+            }
         }
         return ResponseEntity.ok(partnerService.getSetupStatus(id));
     }

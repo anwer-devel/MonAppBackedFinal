@@ -22,10 +22,11 @@ public class JwtService {
 
     private final JwtConfig jwtConfig;
 
-    public String generateAccessToken(String email, String role,
+    public String generateAccessToken(UUID userId, String email, String role,
                                        UUID partnerId, String partnerCode,
                                        UUID defaultLocalId, List<UUID> localAccess) {
         Map<String, Object> claims = new HashMap<>();
+        if (userId != null) claims.put("userId", userId.toString());
         claims.put("role", role);
         if (partnerId != null) claims.put("partnerId", partnerId.toString());
         if (partnerCode != null) claims.put("partnerCode", partnerCode);
@@ -76,6 +77,10 @@ public class JwtService {
 
     public String extractPartnerId(String token) {
         return extractAllClaims(token).get("partnerId", String.class);
+    }
+
+    public String extractUserId(String token) {
+        return extractAllClaims(token).get("userId", String.class);
     }
 
     public String extractPartnerCode(String token) {

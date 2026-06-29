@@ -6,8 +6,12 @@ import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
 import lombok.Data;
 
+import java.util.UUID;
+
 @Data
 public class CreateLocalRequest {
+
+    private UUID partnerId; // Optionnel : ignoré si PARTNER_ADMIN
 
     @NotBlank(message = "Le code est requis")
     @Size(max = 50, message = "Le code ne peut pas dépasser 50 caractères")
