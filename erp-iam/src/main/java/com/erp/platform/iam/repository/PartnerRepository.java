@@ -19,21 +19,28 @@ public interface PartnerRepository extends JpaRepository<Partner, UUID> {
 
     Optional<Partner> findByCodeIgnoreCaseAndIsDeletedFalse(String code);
 
-    Optional<Partner> findByEmailAndIsDeletedFalse(String email);
+    Optional<Partner> findByEmailIgnoreCaseAndIsDeletedFalse(String email);
 
     Optional<Partner> findByIdAndIsDeletedFalse(UUID id);
 
-    @Query("SELECT p FROM Partner p WHERE p.isDeleted = false " +
-            "AND (:sector IS NULL OR p.sectorType = :sector) " +
-            "AND (:plan IS NULL OR p.plan = :plan) " +
-            "AND (:status IS NULL OR p.status = :status) " +
-            "AND (:q IS NULL OR LOWER(p.name) LIKE LOWER(CONCAT('%', :q, '%')) " +
-            "  OR LOWER(p.code) LIKE LOWER(CONCAT('%', :q, '%')) " +
-            "  OR LOWER(p.email) LIKE LOWER(CONCAT('%', :q, '%')))")
+    @Query("""
+        SELECT p FROM Partner p
+        WHERE p.isDeleted = false
+          AND (:sector IS NULL OR p.sectorType = :sector)
+          AND (:plan IS NULL OR p.plan = :plan)
+          AND (:status IS NULL OR p.status = :status)
+          AND (
+            :q IS NULL
+            OR LOWER(p.name) LIKE :qPattern
+            OR LOWER(p.code) LIKE :qPattern
+            OR LOWER(p.email) LIKE :qPattern
+          )
+        """)
     Page<Partner> findWithFilters(@Param("sector") SectorType sector,
                                   @Param("plan") PlanType plan,
                                   @Param("status") PartnerStatus status,
                                   @Param("q") String q,
+                                  @Param("qPattern") String qPattern,
                                   Pageable pageable);
 
     @Query("SELECT COUNT(p) FROM Partner p WHERE p.status = 'ACTIVE' AND p.isDeleted = false")

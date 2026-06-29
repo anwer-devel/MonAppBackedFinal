@@ -38,7 +38,7 @@ public class AuthService {
 
     @Transactional
     public LoginResponse login(LoginRequest req, String ipAddress) {
-        Collaborator collab = collaboratorRepository.findByEmailAndIsDeletedFalse(req.getEmail())
+        Collaborator collab = collaboratorRepository.findByEmailWithRelations(req.getEmail())
                 .orElseThrow(() -> new BadCredentialsException("Email ou mot de passe incorrect"));
 
         if (!passwordEncoder.matches(req.getPassword(), collab.getPasswordHash())) {

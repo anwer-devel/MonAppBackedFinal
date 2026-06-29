@@ -1,6 +1,7 @@
 package com.erp.platform.iam.controller;
 
 import com.erp.platform.core.common.PageResponse;
+import com.erp.platform.core.exception.ForbiddenException;
 import com.erp.platform.core.security.UserPrincipal;
 import com.erp.platform.iam.dto.collaborator.CollaboratorResponse;
 import com.erp.platform.iam.dto.partner.*;
@@ -124,7 +125,13 @@ public class PartnerController {
     @GetMapping("/{id}/setup-status")
     @PreAuthorize("hasAnyRole('PLATFORM_ADMIN','PARTNER_ADMIN')")
     @Operation(summary = "Get partner setup status")
-    public ResponseEntity<SetupStatusResponse> getSetupStatus(@PathVariable UUID id) {
+    public ResponseEntity<SetupStatusResponse> getSetupStatus(
+            @PathVariable UUID id,
+            @AuthenticationPrincipal UserPrincipal principal) {
+        if ("PARTNER_ADMIN".equals(principal.getRole())
+                && (principal.getPartnerId() == null || !id.equals(principal.getPartnerId()))) {
+            throw new ForbiddenException("Accès refusé : vous ne pouvez accéder qu'à votre propre tenant");
+        }
         return ResponseEntity.ok(partnerService.getSetupStatus(id));
     }
 

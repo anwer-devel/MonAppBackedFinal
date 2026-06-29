@@ -52,7 +52,9 @@ public class PartnerService {
     public PageResponse<PartnerResponse> getAll(SectorType sector, PlanType plan,
                                                   PartnerStatus status, String q,
                                                   Pageable pageable) {
-        Page<Partner> page = partnerRepository.findWithFilters(sector, plan, status, q, pageable);
+        String qParam = (q != null && !q.isBlank()) ? q.trim() : null;
+        String qPattern = (qParam != null) ? "%" + qParam.toLowerCase() + "%" : null;
+        Page<Partner> page = partnerRepository.findWithFilters(sector, plan, status, qParam, qPattern, pageable);
         Page<PartnerResponse> responsePage = page.map(this::enrichPartnerResponse);
         return PageResponse.from(responsePage);
     }
@@ -64,17 +66,38 @@ public class PartnerService {
 
     @Transactional
     public PartnerResponse create(CreatePartnerRequest req, UUID createdByUserId) {
-        // Check uniqueness
-        partnerRepository.findByCodeIgnoreCaseAndIsDeletedFalse(req.getCode())
-                .ifPresent(p -> { throw new ConflictException("Ce code est déjà utilisé", "code"); });
+        // Normaliser le code
+        if (req.getCode() != null) {
+            req.setCode(req.getCode().trim().toUpperCase());
+        }
 
-        partnerRepository.findByEmailAndIsDeletedFalse(req.getEmail())
-                .ifPresent(p -> { throw new ConflictException("Cet email est déjà utilisé", "email"); });
+        // Vérifier unicité code
+        if (partnerRepository.findByCodeIgnoreCaseAndIsDeletedFalse(req.getCode()).isPresent()) {
+            throw new ConflictException("Ce code partenaire est déjà utilisé", "code");
+        }
 
-        // Create partner
-        Partner partner = partnerMapper.toEntity(req);
-        partner.setStatus(req.getPlan() == PlanType.TRIAL ? PartnerStatus.TRIAL : PartnerStatus.ACTIVE);
-        partner.setConfig(buildDefaultConfig(req.getSectorType()));
+        // Vérifier unicité email
+        if (partnerRepository.findByEmailIgnoreCaseAndIsDeletedFalse(req.getEmail()).isPresent()) {
+            throw new ConflictException("Cet email est déjà utilisé", "email");
+        }
+
+        PartnerConfig config = buildDefaultConfig(req.getSectorType());
+
+        Partner partner = Partner.builder()
+                .code(req.getCode())
+                .name(req.getName())
+                .sectorType(req.getSectorType())
+                .plan(req.getPlan())
+                .status(req.getPlan() == PlanType.TRIAL ? PartnerStatus.TRIAL : PartnerStatus.ACTIVE)
+                .email(req.getEmail())
+                .phone(req.getPhone())
+                .address(req.getAddress())
+                .taxNumber(req.getTaxNumber())
+                .subscriptionEnd(req.getSubscriptionEnd())
+                .currency("TND")
+                .config(config)
+                .build();
+
         partner = partnerRepository.save(partner);
 
         // Initialize tenant schema
@@ -183,12 +206,15 @@ public class PartnerService {
     }
 
     public SetupStatusResponse getSetupStatus(UUID partnerId) {
+        partnerRepository.findByIdAndIsDeletedFalse(partnerId)
+                .orElseThrow(() -> new ResourceNotFoundException("Partner", "id", partnerId));
+
         int localsCount = localUnitRepository.countByPartner_IdAndIsDeletedFalse(partnerId);
-        int collabsCount = collaboratorRepository.countByPartner_IdAndIsDeletedFalse(partnerId);
-        // Subtract the PARTNER_ADMIN from collaborators count
+        int collabsCount = collaboratorRepository.countNonAdminByPartnerId(partnerId);
+
         return SetupStatusResponse.builder()
                 .hasLocals(localsCount > 0)
-                .hasCollaborators(collabsCount > 1) // > 1 because PARTNER_ADMIN always exists
+                .hasCollaborators(collabsCount > 0)
                 .build();
     }
 
@@ -216,31 +242,27 @@ public class PartnerService {
         return response;
     }
 
-    private PartnerConfig buildDefaultConfig(SectorType sectorType) {
-        PartnerConfig.PartnerConfigBuilder builder = PartnerConfig.builder()
-                .stockEnabled(true)
-                .posEnabled(true)
-                .billingEnabled(true)
-                .defaultCurrency("TND")
-                .defaultTaxRate(new BigDecimal("19.0"))
-                .invoicePrefix("FAC")
-                .invoiceStartNumber(1000)
-                .stockValuationMethod("AVERAGE_COST");
-
-        switch (sectorType) {
-            case AUTO -> builder
-                    .vehicleCompatEnabled(true)
-                    .vinLookupEnabled(true);
-            case PHARMA -> builder
-                    .expiryTrackingEnabled(true)
-                    .lotTrackingEnabled(true)
-                    .prescriptionEnabled(true)
-                    .stockValuationMethod("FEFO");
-            case HARDWARE -> builder
-                    .multiWarehouseEnabled(false);
-            default -> { /* MIXED: defaults only */ }
+    private PartnerConfig buildDefaultConfig(SectorType sector) {
+        PartnerConfig cfg = new PartnerConfig();
+        cfg.setStockEnabled(true);
+        cfg.setPosEnabled(true);
+        cfg.setBillingEnabled(true);
+        cfg.setReportsEnabled(true);
+        cfg.setDefaultCurrency("TND");
+        cfg.setDefaultTaxRate(BigDecimal.valueOf(19.0));
+        cfg.setInvoicePrefix("FAC");
+        cfg.setInvoiceStartNumber(1000);
+        cfg.setStockValuationMethod("AVERAGE_COST");
+        if (sector == SectorType.AUTO || sector == SectorType.MIXED) {
+            cfg.setVehicleCompatEnabled(true);
+            cfg.setVinLookupEnabled(true);
         }
-
-        return builder.build();
+        if (sector == SectorType.PHARMA) {
+            cfg.setExpiryTrackingEnabled(true);
+            cfg.setLotTrackingEnabled(true);
+            cfg.setPrescriptionEnabled(true);
+            cfg.setStockValuationMethod("FEFO");
+        }
+        return cfg;
     }
 }

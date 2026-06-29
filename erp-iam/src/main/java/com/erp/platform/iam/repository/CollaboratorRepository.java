@@ -41,4 +41,20 @@ public interface CollaboratorRepository extends JpaRepository<Collaborator, UUID
 
     Optional<Collaborator> findByPartner_IdAndRoleAndIsDeletedFalse(
             UUID partnerId, CollaboratorRole role);
+
+    @Query("""
+      SELECT c FROM Collaborator c
+      LEFT JOIN FETCH c.partner p
+      LEFT JOIN FETCH c.defaultLocal l
+      WHERE c.email = :email AND c.isDeleted = false
+      """)
+    Optional<Collaborator> findByEmailWithRelations(@Param("email") String email);
+
+    @Query("""
+      SELECT COUNT(c) FROM Collaborator c
+      WHERE c.partner.id = :partnerId
+        AND c.role != 'PARTNER_ADMIN'
+        AND c.isDeleted = false
+      """)
+    int countNonAdminByPartnerId(@Param("partnerId") UUID partnerId);
 }

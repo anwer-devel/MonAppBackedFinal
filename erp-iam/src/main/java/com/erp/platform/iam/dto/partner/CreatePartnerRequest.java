@@ -10,9 +10,12 @@ import java.time.LocalDate;
 @Data
 public class CreatePartnerRequest {
 
-    @NotBlank(message = "Le code est requis")
+    @NotBlank(message = "Le code partenaire est obligatoire")
     @Size(min = 2, max = 20, message = "Le code doit contenir entre 2 et 20 caractères")
-    @Pattern(regexp = "[A-Z0-9\\-]+", message = "Le code ne peut contenir que A-Z, 0-9 et -")
+    @Pattern(
+        regexp = "^[A-Z0-9][A-Z0-9-]{1,19}$",
+        message = "Le code ne doit contenir que des lettres majuscules, chiffres et tirets"
+    )
     private String code;
 
     @NotBlank(message = "Le nom est requis")

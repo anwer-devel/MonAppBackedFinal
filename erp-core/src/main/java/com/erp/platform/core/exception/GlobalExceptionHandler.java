@@ -53,13 +53,13 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(MethodArgumentNotValidException.class)
     public ResponseEntity<Map<String, Object>> handleValidation(MethodArgumentNotValidException ex) {
-        Map<String, Object> body = buildBody(HttpStatus.BAD_REQUEST, "Erreur de validation");
-        Map<String, String> validationErrors = new HashMap<>();
-        for (FieldError error : ex.getBindingResult().getFieldErrors()) {
-            validationErrors.put(error.getField(), error.getDefaultMessage());
-        }
-        body.put("validationErrors", validationErrors);
-        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(body);
+        Map<String, String> errors = new LinkedHashMap<>();
+        ex.getBindingResult().getFieldErrors().forEach(e -> errors.put(e.getField(), e.getDefaultMessage()));
+        Map<String, Object> body = new LinkedHashMap<>();
+        body.put("error", "VALIDATION_ERROR");
+        body.put("message", "Données invalides");
+        body.put("validationErrors", errors);
+        return ResponseEntity.badRequest().body(body);
     }
 
     @ExceptionHandler(IllegalArgumentException.class)
