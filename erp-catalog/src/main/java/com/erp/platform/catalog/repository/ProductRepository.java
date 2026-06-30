@@ -8,8 +8,10 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
+import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 import java.util.UUID;
 
 @Repository
@@ -86,4 +88,9 @@ public interface ProductRepository extends JpaRepository<Product, UUID> {
       WHERE p.id = :id AND p.isDeleted = false
       """)
     Optional<Product> findByIdWithExtensions(@Param("id") UUID id);
+
+    @Query("SELECT p FROM Product p WHERE p.id IN :ids AND p.isDeleted = false")
+    List<Product> findAllByIdInAndIsDeletedFalse(@Param("ids") Collection<UUID> ids);
+
+    Optional<Product> findByIdAndIsDeletedFalse(UUID id);
 }

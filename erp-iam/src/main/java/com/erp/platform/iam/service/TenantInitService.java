@@ -7,6 +7,8 @@ import lombok.extern.slf4j.Slf4j;
 import org.flywaydb.core.Flyway;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Propagation;
+import org.springframework.transaction.annotation.Transactional;
 
 import javax.sql.DataSource;
 
@@ -19,7 +21,9 @@ public class TenantInitService {
 
     /**
      * Creates the tenant schema and runs Flyway migrations for the tenant.
+     * Uses Propagation.NOT_SUPPORTED to run outside the caller's transaction and prevent PostgreSQL DDL lock deadlocks with Flyway.
      */
+    @Transactional(propagation = Propagation.NOT_SUPPORTED)
     public void initializeTenant(Partner partner) {
         String schema = TenantSchemaResolver.resolveSchema(partner.getCode());
 
@@ -34,7 +38,7 @@ public class TenantInitService {
             Flyway flyway = Flyway.configure()
                     .dataSource(dataSource)
                     .schemas(schema)
-                    .locations("classpath:db/tenant_migration")
+                    .locations("classpath:db/tenant_migration", "classpath:db/migration/tenant")
                     .baselineOnMigrate(true)
                     .baselineVersion("0")
                     .load();

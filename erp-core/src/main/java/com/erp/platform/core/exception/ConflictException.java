@@ -19,4 +19,9 @@ public class ConflictException extends RuntimeException {
         super(message);
         this.field = field;
     }
+
+    public ConflictException(String code, String field, String message) {
+        super(message);
+        this.field = field;
+    }
 }
